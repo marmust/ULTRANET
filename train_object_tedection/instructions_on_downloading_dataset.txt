@@ -1,0 +1,24 @@
+--- preparing dataset ---
+
+1:
+go to: https://drive.google.com/drive/folders/1mhGaH_riwpCnCgAmUJUP5gyW1e7zJ28n?usp=sharing
+and download dataset_materials.zip
+
+2:
+extract dataset_materials.zip into the same folder as dataset_generator.ipynb (same folder as this txt file)
+
+3:
+run dataset_generator.ipynb, keep in mind that you might need to adjust some settings
+
+4:
+now make sure that a new folder appeared called auto_generated_dataset which contains training and validation data in the YOLO format
+
+--- training model ---
+
+6:
+clone the YOLOv5 repo and follow this tutorial to train the model
+https://www.youtube.com/watch?v=tFNJGim3FXw&t=3516s
+
+7:
+inside targeting_sensor.py replace the path to the existing model with the path to your new model which you can find in
+yolov5/train/runs/[latest_run]/weights/best.pt
