@@ -2,10 +2,14 @@ import vgamepad as vg
 import dxcam_cpp as dx
 import time
 import numpy as np
+import cv2
 
-MIN_DURATION = 0.001
+MIN_DURATION = 0.001 # The minimum duration to do button presses for actions, should be the lowest that the game can possibly detect but I'm not going to spend a lot of time optimizing it (yet)
+IMAGE_RESIZE = True # Whether to resize the image for all sensors (downscale or upscale, either one)
+RESIZE_DIMS = (640, 480) # The scale to resize the image to (default 480p for the yolov5m model)
+RESIZE_INTERP_TYPE = cv2.INTER_LINEAR # The type of interpolation to apply when resizing the image (default cv2's default interpolation type)
 
-class Ultrakill_Interface():
+class ultrakill_interface():
 
     """
     A class to interface with ultrakill
@@ -36,28 +40,6 @@ class Ultrakill_Interface():
     def apply_movement(self, x, y):
         self.gamepad.left_joystick_float(x_value_float=x, y_value_float=y)
         self.gamepad.update()
-
-    # Rotates towards a specified point on the screen
-    def rotate_to_point(self, x, y):
-
-        # Approximate the degrees to rotate with the screen aspect ratio and fov
-        x_degrees = x * self.fov / self.aspect_ratio[0]
-        y_degrees = y * self.fov / self.aspect_ratio[1]
-
-        # Time to apply rotation until the target is on crosshair
-        allignment_time_x = abs(x_degrees) / self.sensitivity
-        allignment_time_y = abs(y_degrees) / self.sensitivity
-
-        if allignment_time_x < allignment_time_y: # Less time to travel on X
-            self.apply_rotation(np.sign(x), np.sign(y))
-            time.sleep(allignment_time_x / self.game_speed) # Rotate until X is correct
-            self.apply_rotation(0, np.sign(y)) # X is aligned, no need to rotate on it
-            time.sleep((allignment_time_y - allignment_time_x) / self.game_speed) # Rotate until the Y is correct as well
-        else: # Less time to travel on Y
-            self.apply_rotation(np.sign(x), np.sign(y))
-            time.sleep(allignment_time_y / self.game_speed) # Rotate until Y is correct
-            self.apply_rotation(np.sign(x), 0) # Y is aligned, no need to rotate on it
-            time.sleep((allignment_time_x - allignment_time_y) / self.game_speed) # Rotate until the X is correct as well
 
     # Jump (A press)
     def jump(self, duration = MIN_DURATION):
@@ -143,17 +125,17 @@ class Ultrakill_Interface():
             time.sleep(duration)
             self.gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_SHOULDER)
             self.gamepad.update()
-        current_weapon = (current_weapon + direction) % self.num_weapons
-        if current_weapon == -1:
-            current_weapon = self.num_weapons - 1
+        self.current_weapon = (self.current_weapon + direction) % self.num_weapons
+        if self.current_weapon == -1:
+            self.current_weapon = self.num_weapons - 1
 
     # Switches the weapon to a specific index
     def switch_weapon_to(self, weapon_idx):
-        if weapon_idx < self.current_weapon: # Current weapon is too low of an index, scroll up weapons till it reaches the desired one
-            for _ in range(self.current_weapon - weapon_idx):
-                self.switch_weapon(1)
-        if weapon_idx > self.current_weapon: # Current weapon is too high of an index, scroll down weapons till it reaches the desired one
+        if weapon_idx > self.current_weapon: # Current weapon is too low of an index, scroll up weapons till it reaches the desired one
             for _ in range(weapon_idx - self.current_weapon):
+                self.switch_weapon(1)
+        if weapon_idx < self.current_weapon: # Current weapon is too high of an index, scroll down weapons till it reaches the desired one
+            for _ in range(self.current_weapon - weapon_idx):
                 self.switch_weapon(-1)
     
     # Switches the weapon variation up by one
@@ -223,38 +205,8 @@ class Ultrakill_Interface():
     # Take a screenshot (uses dxcam)
     def get_game_screenshot(self):
         screenshot = self.cam.grab()
-        while type(screenshot) == None:
+        while screenshot is None:
             screenshot = self.cam.grab()
+        if IMAGE_RESIZE:
+            screenshot = cv2.resize(screenshot, RESIZE_DIMS, interpolation=RESIZE_INTERP_TYPE) # Use cv2 here for fast easy resizing for interpolation
         return screenshot
-
-
-"""
-# ill call this part: ---HIGH LEVEL OPERATIONS---
-
-# function to change the color of the shotgun with the *perfect timing
-def shotgun_swaps_thread_function(game_speed):
-    while True:
-        switch_weapon_color(0.1)
-        time.sleep(0.45 * (1 / (game_speed / 100)))
-
-# if applied to rotation, camera will zigzag abck and fourth
-def get_zigzag_direction(relative_zigzag_time, sensitivity, game_speed):
-    sensitivity = sensitivity / 100
-    relative_zigzag_time *= 1 / (game_speed / 100)
-    relative_zigzag_time = relative_zigzag_time / sensitivity
-    # skibidi toilet line
-    return float(time.time() % relative_zigzag_time > (relative_zigzag_time / 2)) * 2 - 1
-
-# make it so v1 is looking straight forward no matter what
-def level_horizon(sensitivity, game_speed):
-    # normalize sensitivity
-    sensitivity = sensitivity / 100
-    
-    # look up until v1 is definatly facing 90 degrees up
-    apply_rotation(0, 1)
-    time.sleep(0.38 / sensitivity * 1 / (game_speed / 100))
-    # look back down until v1 is looking at the horizon (based on sensitivity)
-    apply_rotation(0, -1)
-    time.sleep(0.17 / sensitivity * 1 / (game_speed / 100))
-    apply_rotation(0, 0)
-"""
