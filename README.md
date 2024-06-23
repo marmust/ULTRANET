@@ -22,14 +22,12 @@ HOW TO RUN:
 
         SENSOR_MODULES:
 
-
             A list of the sensor modules to include for the bot
             Sensor modules are things that take in a screenshot of the game and output data for other modules to use
             This has to include every required sensor module for the strategy and all action modules
 
 
         ACTION_MODULES:
-
 
             A list of the action modules to include for the bot
             Action modules take in data from sensor modules and use the interface to control v1
@@ -39,14 +37,12 @@ HOW TO RUN:
 
         STRATEGY:
 
-
             The strategy module that you want to use
             Strategy modules take in data from sensor modules and decide which action module should be run each iteration
             This can be any strategy module you want
         
 
         INTERFACE_DATA:
-
 
             A list of numbers important for the bot to be able to properly play, make sure to fill all these out with your own values beforehand!
             The bot uses some of these for things like deciding how much to turn, or how fast things should be run
@@ -64,12 +60,14 @@ MAKING MODULES:
 
 
     SENSOR MODULES:
+
         Look at the base_sensor_module.py for an example of how a sensor module should be structured
         Create a new python file in the sensor modules folder, and create a class there that inherits from the base sensor module class
         Then implement the init and run methods for the sensor, making sure it outputs appropriate data for whatever kind of sensor it is
 
 
     ACTION MODULES:
+
         Look at the base_action_module.py for an example of how an action module should be structured
         Create a new python file in the action modules folder, and create a class there that inherits from the base action module class
         Then implement the init and run methods for the action module, with the init function calling the init method for it's parent class with the interface to set the interface variable
@@ -79,6 +77,7 @@ MAKING MODULES:
     
 
     STRATEGY MODULES:
+
         Look at the base_strategy.py for an example of how a strategy module should be structured
         Create a new python file in the strategies folder, and create a class there that inherits from the base strategy module class
         Then implement the init and run methods for the strategy module, with the init function calling the init method for it's parent class with the list of action module name and value pairs
