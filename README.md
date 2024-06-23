@@ -1,7 +1,11 @@
 A framework for a fully modular ULTRAKILL playing agent
+
 (A rewrite of [this](https://youtu.be/16zgLzC1eDE))
+
 Original concept/code/idea/literally everything by [8AAFFF](https://www.youtube.com/@8AAFFF)
+
 Code (mostly) rewritten by [CTAG](https://www.youtube.com/@ctag07)
+
 (if anyone wants to reformat this readme with better markdown then please do, I don't know how to do markdown)
 
 
