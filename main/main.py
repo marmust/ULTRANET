@@ -13,6 +13,9 @@ class main():
         self.sensor_modules = {a.__name__:(a(), None) for a in sensor_modules} # Initialize all sensor modules in a dictionary indexed by their name. The tuple here is (sensor_module, sensor_data) Where sensor data is used to keep track of the output of the sensor
         self.strategy = strategy(self.action_modules.keys()) # Initialize the main strategy, giving it a list of the names of action modules
         self.required_sensors = self.strategy.required_sensors # This list will be used to keep track of which sensor modules the strategy needs, and thus which sensor modules should be run every time
+        for sensor in self.required_sensors:
+            if not sensor in self.sensor_modules.keys():
+                raise NotImplementedError("Required Sensor Module Missing! " + sensor)
         self.fps = []
 
     def run(self):
@@ -26,7 +29,9 @@ class main():
         reqs = self.action_modules[module].required_sensors # Get the required sensors list from the action module chosen
         action_in = [] # Setup the list of sensor data to be input into the action module
         for sensor in reqs: # Iterate over required sensors for the action module
-            if not sensor in self.required_sensors: # The sensor data has not been calculated yet, so it needs to be
+            if not sensor in self.sensor_modules.keys():
+                raise NotImplementedError("Required Sensor Module Missing! " + sensor)
+            elif not sensor in self.required_sensors: # The sensor data has not been calculated yet, so it needs to be
                 self.sensor_modules[sensor] = (self.sensor_modules[sensor][0], self.sensor_modules[sensor][0].run(screenshot)) # This sensor hasn't been run for the strategy, so get the sensor data (indexed at 1) to the output of the sensor module (indexed at 0)
                 action_in.append(self.sensor_modules[sensor][1]) # Append the result to the action module input list
             else: # This sensor has already been run for the strategy
@@ -37,7 +42,6 @@ class main():
             self.fps.__delitem__(0)
             print(f"Running at approx {sum(self.fps)/100} fps")
 
-"""
 import config
 
 while True:
@@ -45,17 +49,12 @@ while True:
         reload(config)
         from config import *
         runner = main(ACTION_MODULES, SENSOR_MODULES, STRATEGY, INTERFACE_DATA)
-        while not (keyboard.is_pressed("r") or keyboard.is_pressed("q")):
+        while not (keyboard.is_pressed("End") or keyboard.is_pressed("Home")):
             runner.run()
-        if keyboard.is_pressed("q"):
+        if keyboard.is_pressed("End"):
             break
     except KeyboardInterrupt:
         break
     except Exception as e:
         print(e)
         runner.interface.cam.release()
-"""
-from config import *
-runner = main(ACTION_MODULES, SENSOR_MODULES, STRATEGY, INTERFACE_DATA)
-while not (keyboard.is_pressed("r") or keyboard.is_pressed("q")):
-    runner.run()

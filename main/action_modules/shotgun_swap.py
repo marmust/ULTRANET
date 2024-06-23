@@ -1,7 +1,7 @@
 from .base_action_module import action_module
 import torch as pyt
 import time
-import numpy as np
+import keyboard
 
 IMPORTANCE_WEIGHTS = pyt.tensor((1.0, 1.0,  # x and y
                                 0.2, 0.2,  # width and height
@@ -10,6 +10,7 @@ IMPORTANCE_WEIGHTS = pyt.tensor((1.0, 1.0,  # x and y
 WHIPLASH_THRESHOLD = 0.001 # Threshold at which it tries to whiplash the target
 BACKUP_THRESHOLD = 0.05 # Threshold at which it tries to backup from the target
 WANTED_THRESHOLD = 0.03
+MOUSE_MAGIC = 3 # Random number that I felt out that assists in aiming properly without jumping all over the place, although it still does that
 
 class shotgun_swap(action_module):
 
@@ -18,13 +19,11 @@ class shotgun_swap(action_module):
     def __init__(self, interface):
         super().__init__(interface)
         self.interface = interface
-        self.x_ratio = interface.aspect_ratio[0] / max(interface.aspect_ratio)
-        self.y_ratio = interface.aspect_ratio[1] / max(interface.aspect_ratio)
         self.target_detected = False
         self.target = None
         self.target_class = 0
         self.last_swapped = time.time()
-    
+
     def run(self, yolo_sensor_data):
 
         current_time = time.time()
@@ -44,7 +43,7 @@ class shotgun_swap(action_module):
                 self.target = yolo_sensor_data[target_idx]
     
             target_size = pyt.prod(self.target[2:4]) # Get bounding box size of target
-            self.interface.apply_movement((int(current_time/3)%2)*2-1, (target_size.item() < WANTED_THRESHOLD)*2-1) # Some messy math, but basically
+            self.interface.apply_movement((target_size.item() < WANTED_THRESHOLD)*2-1, (int(current_time*3)%2)*2-1) # Some messy math, but basically switch strafing direction every third of a second
             
             if target_size < WHIPLASH_THRESHOLD: # Target is too far away
                 self.interface.whiplash() # Whiplash target
@@ -52,13 +51,13 @@ class shotgun_swap(action_module):
                 self.interface.dash() # Dash away from target
             
             if current_time - self.last_swapped > 0.45: # Been at least 0.45 seconds from the last shotgun swap we did, so shoot and swap
-                self.interface.main_fire_tap()
-                self.interface.switch_variation()
+                self.interface.main_fire_tap(0.01)
+                self.interface.switch_variation_up()
                 self.last_swapped = time.time()
             
-            x, y = self.target[0].item(), self.target[1].item() # Get the X and Y values of the bounding box
-            x, y = np.sign(self.target[0].item()-0.5)*self.target[0].item(), np.sign(-self.target[1].item()+0.5)*self.target[1].item() # Multiply the values by 1 or -1 depending on where the bounding box is
-            x, y = x*self.x_ratio, y*self.y_ratio
+            x, y = self.target[0].item() * self.interface.aspect_ratio[0] - (0.5 * self.interface.aspect_ratio[0]), self.target[1].item() * self.interface.aspect_ratio[1] - (0.5 * self.interface.aspect_ratio[1]) # Get the X and Y values of the bounding box, then normalize them with the screem size
+            x = x * 63356 / self.interface.aspect_ratio[0] / self.interface.sensitivity / MOUSE_MAGIC
+            y = y * 63356 / self.interface.aspect_ratio[1] / self.interface.sensitivity / MOUSE_MAGIC
             self.interface.apply_rotation(x, y)
     
         else:
@@ -66,7 +65,7 @@ class shotgun_swap(action_module):
             # No enemy spotted, so reset the target to None
             self.target = None
             self.interface.apply_movement(0, 0) # Stop in our tracks for more efficient rotation
-            self.interface.apply_rotation(1, int(current_time)%2*2-1) # No target on screen, turn to the right, swapping every second between looking up and down
+            self.interface.apply_rotation(20, int(current_time)%2*20-10) # No target on screen, turn to the right, swapping every second between looking up and down
             self.interface.jump() # Jump up in the air so walls can't keep us from seeing enemies
 
     def find_recurring_target(self, current_tensor):

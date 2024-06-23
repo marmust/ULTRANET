@@ -1,10 +1,9 @@
-import vgamepad as vg
 import dxcam_cpp as dx
 import time
-import numpy as np
 import cv2
+from inputs import *
 
-MIN_DURATION = 0.001 # The minimum duration to do button presses for actions, should be the lowest that the game can possibly detect but I'm not going to spend a lot of time optimizing it (yet)
+MIN_DURATION = 0 # The minimum duration to do button presses for actions, should be the lowest that the game can possibly detect but I'm not going to spend a lot of time optimizing it (yet)
 IMAGE_RESIZE = True # Whether to resize the image for all sensors (downscale or upscale, either one)
 RESIZE_DIMS = (640, 480) # The scale to resize the image to (default 480p for the yolov5m model)
 RESIZE_INTERP_TYPE = cv2.INTER_LINEAR # The type of interpolation to apply when resizing the image (default cv2's default interpolation type)
@@ -17,9 +16,9 @@ class ultrakill_interface():
     Implements methods to both control the game and get the current screen
     """
 
-    def __init__(self, num_weapons, fov, sensitivity, aspect_ratio, game_speed):
+    def __init__(self, fov, sensitivity, aspect_ratio, game_speed):
         # Variables to keep track of a buncha stuff (assumes standard weapon order, starting on the piercer revolver)
-        self.gamepad = vg.VX360Gamepad()
+        self.inp_man = input_manager()
         self.current_weapon = 0
         self.current_variant = 0
         self.num_of_weapons = 5
@@ -28,179 +27,117 @@ class ultrakill_interface():
         self.sensitivity = sensitivity
         self.aspect_ratio = aspect_ratio
         self.game_speed = game_speed
-        self.num_weapons = num_weapons
         self.cam = dx.create()
     
-    # Rotates the camera (right stick)
+    # Levels the camera out by looking up to the sky and down halfway immediately
+    def level_camera(self):
+        self.apply_rotation(0, self.aspect_ratio[1]/self.sensitivity)
+        self.apply_rotation(0, -0.5*self.aspect_ratio[1]/self.sensitivity)
+
+    # Rotates the camera
     def apply_rotation(self, x, y):
-        self.gamepad.right_joystick_float(x_value_float=x, y_value_float=y)
-        self.gamepad.update()
+        self.inp_man.move_mouse(int(x), int(y))
 
-    # Moves v1 (left stick)
-    def apply_movement(self, x, y):
-        self.gamepad.left_joystick_float(x_value_float=x, y_value_float=y)
-        self.gamepad.update()
+    # Move forwards/backwards right/left
+    def apply_movement(self, forwards = 0, right = 0):
+        if forwards == 1: # Press W and release S
+            self.inp_man.press_key("W")
+            self.inp_man.release_key("S")
+        elif forwards == -1: # Press S and release W
+            self.inp_man.press_key("S")
+            self.inp_man.release_key("W")
+        else: # No forwards/backwards movement, release both keys
+            self.inp_man.release_key("W")
+            self.inp_man.release_key("S")
+        if right == 1: # Press D and release A
+            self.inp_man.press_key("D")
+            self.inp_man.release_key("A")
+        elif right == -1: # Press A and release D
+            self.inp_man.press_key("A")
+            self.inp_man.release_key("D")
+        else: # No sideways movement, release both keys
+            self.inp_man.release_key("D")
+            self.inp_man.release_key("A")
 
-    # Jump (A press)
+    # Jump
     def jump(self, duration = MIN_DURATION):
-        self.gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
-        self.gamepad.update()
-        time.sleep(duration)
-        self.gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
-        self.gamepad.update()
+        self.inp_man.tap_key("Space", duration)
 
-    # Dash (left stick press)
+    # Dash
     def dash(self, duration = MIN_DURATION):
-        self.gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_THUMB)
-        self.gamepad.update()
-        time.sleep(duration)
-        self.gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_THUMB)
-        self.gamepad.update()
+        self.inp_man.tap_key("Shift", duration)
 
-    # Start holding slide/slam (right stick press)
+    # Start holding slide/slam
     def slide_start(self):
-        self.gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_THUMB)
-        self.gamepad.update()
+        self.inp_man.press_key("Ctrl")
 
-    # Stop holding slide/slam (right stick release)
+    # Stop holding slide/slam
     def slide_end(self):
-        self.gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_THUMB)
-        self.gamepad.update()
+        self.inp_man.release_key("Ctrl")
 
-    # Taps main fire for duration seconds (right trigger)
+    # Taps main fire for duration seconds
     def main_fire_tap(self, duration = MIN_DURATION):
-        self.gamepad.right_trigger_float(value_float=1)
-        self.gamepad.update()
-        time.sleep(duration)
-        self.gamepad.right_trigger_float(value_float=0)
-        self.gamepad.update()
+        self.inp_man.click(True, duration)
 
-    # Presses down main fire (right trigger)
+    # Presses down main fire
     def main_fire_press(self):
-        self.gamepad.right_trigger_float(value_float=1)
-        self.gamepad.update()
+        self.inp_man.mouse_down(True)
 
-    # Releases main fire (right trigger)
+    # Releases main fire
     def main_fire_release(self):
-        self.gamepad.right_trigger_float(value_float=0)
-        self.gamepad.update()
+        self.inp_man.mouse_up(True)
 
-    # Taps alt fire for duration seconds (left trigger)
+    # Taps alt fire for duration seconds
     def alt_fire_tap(self, duration = MIN_DURATION):
-        self.gamepad.left_trigger_float(value_float=1)
-        self.gamepad.update()
-        time.sleep(duration)
-        self.gamepad.left_trigger_float(value_float=0)
-        self.gamepad.update()
+        self.inp_man.click(False, duration)
 
-    # Presses down alt fire (left trigger)
+    # Presses down alt fire
     def alt_fire_press(self):
-        self.gamepad.left_trigger_float(value_float=1)
-        self.gamepad.update()
+        self.inp_man.mouse_down(False)
 
-    # Releases alt fire (left trigger)
+    # Releases alt fire
     def alt_fire_release(self):
-        self.gamepad.left_trigger_float(value_float=0)
-        self.gamepad.update()
+        self.inp_man.mouse_up(False)
 
-    # Punches for specified duration (X button)
+    # Punches for specified duration
     def punch(self, duration = MIN_DURATION):
-        self.gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_X)
-        self.gamepad.update()
-        time.sleep(duration)
-        self.gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_X)
-        self.gamepad.update()
-
-    # Switches weapons, 1 for up, -1 for down
-    def switch_weapon(self, direction, duration = MIN_DURATION):
-        if direction == -1:
-            self.gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_SHOULDER)
-            self.gamepad.update()
-            time.sleep(duration)
-            self.gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_SHOULDER)
-            self.gamepad.update()
-        elif direction == 1:
-            self.gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_SHOULDER)
-            self.gamepad.update()
-            time.sleep(duration)
-            self.gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_SHOULDER)
-            self.gamepad.update()
-        self.current_weapon = (self.current_weapon + direction) % self.num_weapons
-        if self.current_weapon == -1:
-            self.current_weapon = self.num_weapons - 1
+        self.inp_man.tap_key("F", duration)
 
     # Switches the weapon to a specific index
     def switch_weapon_to(self, weapon_idx):
-        if weapon_idx > self.current_weapon: # Current weapon is too low of an index, scroll up weapons till it reaches the desired one
-            for _ in range(weapon_idx - self.current_weapon):
-                self.switch_weapon(1)
-        if weapon_idx < self.current_weapon: # Current weapon is too high of an index, scroll down weapons till it reaches the desired one
-            for _ in range(self.current_weapon - weapon_idx):
-                self.switch_weapon(-1)
+        self.inp_man.tap_key(str(weapon_idx+1))
+        self.current_weapon = weapon_idx
+        self.current_variant = 0
     
     # Switches the weapon variation up by one
-    def switch_variation(self, duration = MIN_DURATION):
-        self.gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_Y)
-        self.gamepad.update()
-        time.sleep(duration)
-        self.gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_Y)
-        self.gamepad.update()
+    def switch_variation_up(self):
+        self.inp_man.tap_key("E")
         self.current_variant = (self.current_variant + 1) % 3
+
+    # Switches the weapon variation down by one
+    def switch_variation_down(self):
+        self.inp_man.tap_key("Q")
+        self.current_variant = self.current_variant - 1
+        if self.current_variant == -1:
+            self.current_variant = 2
 
     # Switches the weapon variation to a specific index
     def switch_variation_to(self, variation):
-        while variation != self.current_variant:
-            self.switch_variation()
+        diff = variation - self.current_variant
+        if diff == 0:
+            return
+        elif diff == 1 or diff == -2:
+            self.switch_variation_up()
+        elif diff == -1 or diff == 2:
+            self.switch_variation_down()
 
-    def switch_fist_variation(self, duration = MIN_DURATION):
-        self.gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN)
-        self.gamepad.update()
-        time.sleep(duration)
-        self.gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN)
-        self.gamepad.update()
+    def switch_fist_variation(self):
+        self.inp_man.tap_key("G")
         self.current_arm = (self.current_arm + 1) % 2
 
     # Holds down whiplash for duration seconds
     def whiplash(self, duration = MIN_DURATION):
-        self.gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_SHOULDER)
-        self.gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_SHOULDER)
-        self.gamepad.update()
-        time.sleep(duration)
-        self.gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_SHOULDER)
-        self.gamepad.release_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_SHOULDER)
-        self.gamepad.update()
-
-    # Resets the level (I'm not touching this and assuming it works)
-    def reset_level(self):
-        # restart level
-        # open settings
-        self.gamepad.reset()
-        self.gamepad.update()
-        
-        self.gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_START)
-        self.gamepad.update()
-        
-        time.sleep(0.1)
-        
-        # go down to checkpoint button
-        # go down to restart button
-        for _ in range(2):
-            self.gamepad.left_joystick_float(x_value_float=0, y_value_float=-1)
-            self.gamepad.update()
-            time.sleep(0.1)
-            self.gamepad.reset()
-            self.gamepad.update()
-            time.sleep(0.1)
-        
-        # click the restart button
-        # click a again to confirm restart
-        for _ in range(2):
-            self.gamepad.press_button(button=vg.XUSB_BUTTON.XUSB_GAMEPAD_A)
-            self.gamepad.update()
-            time.sleep(0.1)
-            self.gamepad.reset()
-            self.gamepad.update()
-            time.sleep(0.1)
+        self.inp_man.tap_key("R", duration)
 
     # Take a screenshot (uses dxcam)
     def get_game_screenshot(self):

@@ -64,3 +64,19 @@ Day 2:
     Need to still make a kind of fix within the shotgun swap logic, so I'll work on that
 
     I'm done for today cause friends will not stop annoying me to get on minecraft, it's basically all implemented, but I want to make a PID for the turning thing, so that's what I'll do tomorrow
+
+Day 3:
+    Skipped a day because I had to do stuff yesterday (I have a life, surprising, I know)
+    Today I'm gonna start with better input automation, then maybe some PIDController if I can't get that to work
+    
+    If I can get it to work, however, I am going to make sure all functionality works, write some documentation, and then finally make a PR
+    
+    Okay, so I found a complicated way to use ctypes to do direct input and it works with ultrakill, VERY fast.
+    This should allow for an absolutely insane amount of control over rotation, because the mouse can be rotated any distance within milliseconds, no need to wait
+    Also, keyboard presses don't need to be awaited, meaning no more time sleeps :D
+
+    The reset level thing doesn't work anymore, butttttt it's a tradeoff for the lightning fast input methods
+    Also the reset level can be remade, I'm just lazy :p
+
+    Okay, did some slight changes to bugfix stuff and now it should all be done! (For now)
+    Time to update the readme, and then ig make a pr
