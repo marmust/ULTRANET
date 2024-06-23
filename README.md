@@ -17,7 +17,7 @@ WARNING:
 HOW TO RUN:
 
 
-    Change anything you want in the config.py file, things are as follows:
+    Change anything you want in the config.py file, they work are as follows:
 
 
         SENSOR_MODULES:
