@@ -1,0 +1,82 @@
+Basically I am going to write this while I do shit so that all the changes I'm doing make sense :D
+
+Day 1:
+    Something I notice beforehand is you're using threading
+    This doesn't really do anything other than hurt performance because you could run the image stuff in the same thread
+    Due to the GIL (global interpreter lock) only one thread can actually use cpu resources at a time, meaning that it'd probably do you just as much good to run everything together
+
+    First of all, I'll make the main just a py file because I'm not used to working with jupyter notebooks
+
+    Second of all, I'm going to move everything to classes, that way I can make something that's extremely modular and allow people to just add modules easier
+
+    Starting with the interface, moving everything to a class and redoing slight bits of functions
+    ALSO, DXCAM!!!!! I love this library for getting images from screens because it's so fast and idk I love it an unreasonable amount
+    How much you wanna bet the "slowness" is because of ImageGrab instead of DXCam
+
+    Okay I've decided to instead write a testing file to test out different image grabbing libraries because I must know which one is the fastest
+    Okay, that was a bit of a waste of time, DXCam crushed as expected
+
+    Okay what is this rotation math
+    I'll try to fix
+
+    I tried to fix the rotation function, it isn't exact but I'll tweak it once I'm done with making everything else modular, because it will make it easier to test
+    Changing all the interface things to be more standardized, adding basic durations to all the functions so for things like punching you can just call it without a duration
+
+    High level operations sections I will deal with later, I am going to make everything extremely modular :DD
+
+    Going to write base classes, each sensor will have it's own class, and each 'strategy' as I've decided to call them will have it's own class
+    I now have to work on something that allows for decisions on what to do to be made a lot easier for the user
+
+    Okay, it took a while, and I got distracted by like 5 hours of modded minecraft with friends inbetween, I setup the main class and it should have all logic implemented already
+
+    All that's really left is to convert everything that already exists into the new system, but I think this is all I have time for today.
+    I have added a shit ton of comments on all the base classes, but this is still a work in progress so lmk if anything is confusing.
+    You don't have to accept this PR just yet, you can wait until I've completely redone everything to spec instead
+
+Day 2:
+    Starting off I probably just have to convert the old code to the new format, and then test
+    I also still have to fix the rotation function, figure out the exact math
+    
+    Okay so I'm thinking that pretty much all of the main logic currently could be put into like two modules, shotgun swapping and navigation
+    
+    I'm going to make the sensor modules pretty simple, and try to offload the logic (like tracking a specific target) to some of the other modules
+    Simple as in they don't keep track of anyting besides the returns and what it needs for the returns, realistically I only need the returns but idk
+    
+    Adding resizing as configurable, maybe eventually I'll move all configs to the same spot? idk
+    
+    After I'm done donverting code to the new format I'll add dynamic reloading so it's easy to test things :D
+
+    Moving old code to it's own folder for reference
+
+    Alright, I'm pretty sure I relatively accurately remade the shotgun swapping code
+    Although I made a couple changes that I think shouldn't affect much?
+    Also do note that the shotgun swapping module shouldn't have to take care of the transition to navigation
+
+    Alright, made the main strategy module, now it's just time for the nav module (which is prob gonna be the most complicated of the ones im translating)
+
+    Made that, updated the way that the main thing runs so that you can hot reload things (useful for dev and messing around)
+
+    Bugfixes. So many bugfixes.
+
+    Now it's finally time to fix rotation
+
+    I am instead removing the rotate to point function. It's really annoying to get working and tbh
+    Need to still make a kind of fix within the shotgun swap logic, so I'll work on that
+
+    I'm done for today cause friends will not stop annoying me to get on minecraft, it's basically all implemented, but I want to make a PID for the turning thing, so that's what I'll do tomorrow
+
+Day 3:
+    Skipped a day because I had to do stuff yesterday (I have a life, surprising, I know)
+    Today I'm gonna start with better input automation, then maybe some PIDController if I can't get that to work
+    
+    If I can get it to work, however, I am going to make sure all functionality works, write some documentation, and then finally make a PR
+    
+    Okay, so I found a complicated way to use ctypes to do direct input and it works with ultrakill, VERY fast.
+    This should allow for an absolutely insane amount of control over rotation, because the mouse can be rotated any distance within milliseconds, no need to wait
+    Also, keyboard presses don't need to be awaited, meaning no more time sleeps :D
+
+    The reset level thing doesn't work anymore, butttttt it's a tradeoff for the lightning fast input methods
+    Also the reset level can be remade, I'm just lazy :p
+
+    Okay, did some slight changes to bugfix stuff and now it should all be done! (For now)
+    Time to update the readme, and then ig make a pr
